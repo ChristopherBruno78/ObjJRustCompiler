@@ -1,0 +1,16 @@
+[package]
+name = "objj"
+version = "0.1.0"
+edition = "2021"
+description = "Objective-J compiler, assembler and method tree-shaker (Rust port of CocotronWeb)"
+
+[[bin]]
+name = "objjc"
+path = "src/main.rs"
+
+[lib]
+name = "objj"
+path = "src/lib.rs"
+
+[dependencies]
+regex = "1"
