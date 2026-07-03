@@ -1753,12 +1753,16 @@ impl Preprocessor {
 /// Mirror `buffer.atoms.length = cnt` truncation logic in JS `preprocess`.
 fn truncate_at_label(buffer: &Buf, label: &str) {
     let mut buf = buffer.borrow_mut();
+    // When the selector name is also an ivar, ivar substitution rewrote the
+    // label atom in place to `self.<label>`; treat that as the label too so we
+    // don't fall through and truncate the receiver as well.
+    let self_label = format!("self.{}", label);
     let mut cnt: i64 = buf.atoms.len() as i64;
     loop {
         let idx = cnt;
         cnt -= 1;
         let is_label = if idx >= 0 && (idx as usize) < buf.atoms.len() {
-            matches!(&buf.atoms[idx as usize], Atom::S(s) if s == label)
+            matches!(&buf.atoms[idx as usize], Atom::S(s) if s == label || *s == self_label)
         } else {
             false
         };

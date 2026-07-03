@@ -75,6 +75,21 @@ fn subclass_records_super_class_name() {
 }
 
 #[test]
+fn message_send_keeps_receiver_when_selector_matches_ivar() {
+    // Regression: a selector whose name is also an ivar/accessor used to drop
+    // the receiver, e.g. `[b action]` compiling to `objj_msgSend(, "action")`.
+    let source = "@implementation Button {\n    SEL action @accessors;\n}\n\
+                  - (void)doSomething {\n    let a = [b action];\n}\n@end\n";
+    let result = compile_ok(source);
+    assert!(
+        result.code.contains("objj_msgSend(b, \"action\")"),
+        "receiver `b` should be preserved, got:\n{}",
+        result.code
+    );
+    assert!(!result.code.contains("objj_msgSend(, "));
+}
+
+#[test]
 fn source_url_defaults_to_anonymous() {
     let opts = CompileOptions::default();
     assert_eq!(opts.source_url, "(anonymous)");
