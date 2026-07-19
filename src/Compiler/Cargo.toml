@@ -6,11 +6,11 @@ description = "Objective-J compiler, assembler and method tree-shaker (Rust port
 
 [[bin]]
 name = "objjc"
-path = "src/main.rs"
+path = "main.rs"
 
 [lib]
 name = "objj"
-path = "src/lib.rs"
+path = "lib.rs"
 
 [dependencies]
 regex = "1"

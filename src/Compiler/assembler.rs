@@ -233,8 +233,8 @@ impl Assembler {
                 url, importer_path
             ))
         } else {
-            for fw in &self.opts.framework_paths {
-                let resolved = resolve(fw, url);
+            for fw in self.framework_search_dirs() {
+                let resolved = resolve(&fw, url);
                 if resolved.exists() {
                     return Ok(Some(resolved.to_string_lossy().to_string()));
                 }
@@ -251,6 +251,19 @@ impl Assembler {
             );
             Ok(None)
         }
+    }
+
+    /// The ordered list of directories searched for framework (`<...>`) imports:
+    ///   1. explicit `--framework` paths,
+    ///   2. a project-level `Frameworks` folder next to the base path,
+    ///   3. the shared Frameworks folder installed alongside the binary.
+    fn framework_search_dirs(&self) -> Vec<PathBuf> {
+        let mut dirs = self.opts.framework_paths.clone();
+        dirs.push(self.opts.base_path.join("Frameworks"));
+        if let Some(shared) = shared_frameworks_dir() {
+            dirs.push(shared);
+        }
+        dirs
     }
 
     pub fn bundle(
@@ -361,6 +374,30 @@ impl Assembler {
 // ---------------------------------------------------------------------------
 // Free functions
 // ---------------------------------------------------------------------------
+
+/// Locate the shared Frameworks directory installed alongside the binary.
+///
+/// `OBJJ_FRAMEWORKS_PATH` overrides everything. Otherwise, given a binary at
+/// `<prefix>/bin/objjc`, the frameworks live at `<prefix>/share/objj/Frameworks`
+/// (matching `install.sh`). Returns `None` if no candidate directory exists.
+fn shared_frameworks_dir() -> Option<PathBuf> {
+    if let Ok(path) = std::env::var("OBJJ_FRAMEWORKS_PATH") {
+        let path = PathBuf::from(path);
+        if path.is_dir() {
+            return Some(path);
+        }
+    }
+
+    let exe = std::env::current_exe().ok()?;
+    // <prefix>/bin/objjc -> <prefix>
+    let prefix = exe.parent()?.parent()?;
+    let shared = prefix.join("share").join("objj").join("Frameworks");
+    if shared.is_dir() {
+        Some(shared)
+    } else {
+        None
+    }
+}
 
 /// Node-style path resolution (`path.resolve(base, url)`).
 fn resolve(base: &Path, url: &str) -> PathBuf {
